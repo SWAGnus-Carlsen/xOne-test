@@ -8,36 +8,40 @@
 import UIKit
 import SnapKit
 import SDWebImage
+import SafariServices
 
 final class CatImagesController: UIViewController {
     
     
-    
+    //MARK: - UI Elements -
     private var catsCollectionView: UICollectionView?
+    
+    //MARK: - Properties -
     private var catBreeds = [CatBreed]()
     private var imageURL: String?
    
+    //MARK: - Lifecycle -
     override func viewDidLoad() {
         super.viewDidLoad()
         
         setupCatsCollectionView()
-        
-        //catimage.sd_setImage(with: URL(string: "https://cdn2.thecatapi.com/images/8D--jCd21.jpg" ))
-        
-        APIManager.shared.getCatBreeds(from: APIConstants.breedsUrl) {[weak self] fetchedData in
+        fetchBreeds(willPaginating: false)
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        catsCollectionView?.reloadData()
+    }
+    
+    //MARK: - Private funcs -
+    private func fetchBreeds(willPaginating : Bool) {
+        APIManager.shared.getCatBreeds(pagination: willPaginating,from: APIConstants.breedsUrl) {[weak self] fetchedData in
+            
             DispatchQueue.main.async {
-                self?.catBreeds = fetchedData
+                self?.catBreeds.append(contentsOf: fetchedData) 
                 self?.catsCollectionView?.reloadData()
-                
-                
             }
-            
-            
         }
-        
-        
-        
-        
     }
     
     private func setupCatsCollectionView() {
@@ -56,7 +60,7 @@ final class CatImagesController: UIViewController {
         guard let catsCollectionView else { return }
         catsCollectionView.translatesAutoresizingMaskIntoConstraints = false
         
-        catsCollectionView.backgroundColor = .white
+        catsCollectionView.backgroundColor = UIColor(named: "BackGround")
         
         catsCollectionView.register(CatsCVCell.self,
                                     forCellWithReuseIdentifier: CatsCVCell.identifier)
@@ -77,8 +81,22 @@ final class CatImagesController: UIViewController {
        
     }
 
+//    private func createSpinnerFooterView() -> UIView {
+//        let footerView = UIView (frame: CGRect(x: 0, y: 0,
+//                                               width: view.frame.size.width,
+//                                               height: 150))
+//
+//        let spinner = UIActivityIndicatorView()
+//
+//        spinner.center = footerView.center
+//        footerView.addSubview(spinner)
+//        spinner.startAnimating()
+//
+//        return footerView
+//    }
 }
 
+//MARK: - Extensions -
 extension CatImagesController: UICollectionViewDataSource, UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         catBreeds.count
@@ -92,14 +110,31 @@ extension CatImagesController: UICollectionViewDataSource, UICollectionViewDeleg
         
         let currentCatBreed = catBreeds[indexPath.row]
 
-        cell.config(withText: currentCatBreed.name, withImgURL: currentCatBreed.reference_image_id)
+        cell.config(
+            with: CatsCVCellViewModel(breedName: currentCatBreed.name,
+                                      imageURLStr: currentCatBreed.reference_image_id))
         
         return cell
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        guard let url = URL(string: catBreeds[indexPath.row].wikipedia_url) else { return }
+        
+        let safariVC = SFSafariViewController(url: url)
+        present(safariVC, animated: true)
+        
     }
 }
 
 extension CatImagesController: UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         let position = scrollView.contentOffset.y
+        if position > (catsCollectionView?.contentSize.height ?? 0) - scrollView.frame.height - 120 {
+            guard !APIManager.isPaginating else {
+                return
+            }
+            fetchBreeds(willPaginating: true)
+        }
+        
     }
 }

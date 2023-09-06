@@ -26,17 +26,19 @@ class CatsCVCell: UICollectionViewCell {
         imageView.clipsToBounds = true
         return imageView
     }()
+    
     private let activityIndicator = UIActivityIndicatorView()
+    
     //MARK: - Override methods -
     override init(frame: CGRect) {
         super.init(frame: frame)
         contentView.addSubview(catNameLabel)
         contentView.addSubview(catImageView)
         catImageView.addSubview(activityIndicator)
-        contentView.backgroundColor = .white
-        contentView.layer.borderColor = UIColor.gray.cgColor
+        contentView.backgroundColor = UIColor(named: "BackGround")
+        contentView.layer.borderColor = UIColor(named: "ForeGround")?.cgColor
         contentView.layer.borderWidth = 1
-        catNameLabel.textColor = .black
+        catNameLabel.textColor = UIColor(named: "ForeGround")
         activityIndicator.style = .large
         activityIndicator.startAnimating()
         contentView.layer.cornerRadius = contentView.frame.height / 8
@@ -62,6 +64,7 @@ class CatsCVCell: UICollectionViewCell {
         super.prepareForReuse()
         catImageView.image = nil
         catNameLabel.text = nil
+        contentView.layer.borderColor = UIColor(named: "ForeGround")?.cgColor
         activityIndicator.stopAnimating()
     }
     
@@ -71,12 +74,16 @@ class CatsCVCell: UICollectionViewCell {
     }
     
     //MARK: - funcs declaration -
-    func config(withText text: String, withImgURL imageURL: String) {
-        APIManager.shared.getCatImage(from: APIConstants.imageURL(imageURL) ) { [weak self]  fetchedImageStruct in
+    func config(with viewModel: CatsCVCellViewModel) {
+        APIManager.shared.getCatImage(from: APIConstants.imageURL(viewModel.imageURLStr) ) { [weak self]  fetchedImageStruct in
             
             DispatchQueue.main.async {
-                self?.catNameLabel.text = text
-                self?.catImageView.sd_setImage(with: URL(string: fetchedImageStruct.url), placeholderImage: UIImage(systemName: "camera"), options: .avoidAutoCancelImage, completed: { _,_,_,_ in
+                self?.catNameLabel.text = viewModel.breedName
+                self?.catImageView.sd_setImage(
+                    with: URL(string: fetchedImageStruct.url),
+                    placeholderImage: UIImage(systemName: "camera"),
+                    options: .avoidAutoCancelImage,
+                    completed: { _,_,_,_ in
                     self?.activityIndicator.stopAnimating()
                 })
                 

@@ -13,9 +13,13 @@ final class APIManager {
     
     static let shared = APIManager()
     
+    static var isPaginating = false
     
-    
-    func getCatBreeds(from urlString: String, completion: @escaping ([CatBreed]) -> Void) {
+    func getCatBreeds(pagination: Bool = false, from urlString: String, completion: @escaping ([CatBreed]) -> Void) {
+        
+        if pagination {
+            APIManager.isPaginating = true
+        }
         
         guard let url = URL(string: urlString) else {
             return
@@ -31,6 +35,10 @@ final class APIManager {
                 let jsonData = try JSONDecoder().decode([CatBreed].self, from: data)
                 // print(try JSON(data: data))
                 completion(jsonData)
+                if pagination {
+                    APIManager.isPaginating = false
+                }
+                
             } catch {
                 print("failed to convert \(#function): \(error)")
             }
